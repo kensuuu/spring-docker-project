@@ -1,0 +1,37 @@
+version: '3'
+services: 
+  db:
+    build: containers/mysql
+    env_file: 
+      - ./environments/common.env
+      - ./environments/db.env
+      volumes: 
+        - ../volumes/db/data:/var/lib/mysql
+      ports: 
+        - 3306:3306
+  app:
+    build: containers/spring
+    env_file: 
+      - ./environments/common.env
+      - ./environments/db.env
+    command: ./mvnw clean spring-boot:run -Dspring-boot.run.jvmArguments="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=*:5005"
+    volumes: 
+      - ../volumes/app:/app
+      - ../volumes/app/.m2/root/.m2
+    ports:
+      - 8080:8080
+      - 5005:5005
+    depends_on: 
+      - db
+  web:
+    build: containers/nginx
+    env_file: 
+      - ./environments/common.env
+    volumes: 
+      - ../volumes/web/static:usr/share/nginx/www/
+      - ../volumes/web/ssl:etc/nginx/cert/
+      - ../volumes/web/log:/var/log/nginx/
+    ports: 
+      - 443:443
+    depends_on: 
+      - app
